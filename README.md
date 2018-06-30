@@ -16,33 +16,36 @@ Today, we are going to create a web crawler to crawl the Bitcoin news site [Coin
 2. Type `scrapy startproject coincrawler`
 
 ## Directory and Files 
-Item pipelines are contained in the pipelines.py file and processes items after they have been scraped by your spider. Item Pipelines process these scraped items through several components that are executed sequentially. 
+When the `scrapy startproject` command is executed, scrapy creates the following directory structure
 
-These processes include:
- `open_spider()`
- `close_spider()`
- `process_item()`
+```
+tutorial/
+    scrapy.cfg            # deploy configuration file
 
-Common uses for Item pipelines include:
+    coincrawler/  # project's Python module, your code will be here
+        
+        __init__.py
 
-* cleansing HTML data
-* validating scraped data (checking that the items contain certain fields)
-* checking for duplicates (and dropping them)
-* storing the scraped item in a database
+        items.py          # project items definition file
 
-Also, Don't forget to add your pipeline to the ITEM_PIPELINES setting!!!
+        middlewares.py    # project middlewares file
 
-See: [Scrapy Official Documentation](https://doc.scrapy.org/en/latest/topics/item-pipeline.html)
+        pipelines.py      # project pipelines file
+
+        settings.py       # project settings file
+
+        spiders/          # directory where with your spiders
+            __init__.py
+```
 
 ### What are the Other Files?
-nothing changes in settings
+For our spider, nothing changes in settings
 pipelines.py contains all the processing of one page/item
 Middlewares dont change
 init does not change
 
 ## Scrapy Interpreter
-
-## DyanmoDB
+In order to scrape and gather data from any website you need to understand the underlying html and css format. Luckily, Scrapy has a built-in shell tool to help parse and explore the underlying structure of the web page we are interested in. [Scrapy's official documentation](https://doc.scrapy.org/en/latest/topics/shell.html#topics-shell) has a great tutorial on using the shell tool to extract data.
 
 ## Creating Our Spider
 
@@ -75,3 +78,73 @@ class CoinDeskCrawler(scrapy.Spider):
     
 
 ```
+
+## Creating an Item Pipeline
+
+Item pipelines are contained in the pipelines.py file and processes items after they have been scraped by your spider. Item Pipelines process these scraped items through several components that are executed sequentially. 
+
+These processes include:
+ `open_spider()`
+ `close_spider()`
+ `process_item()`
+
+Common uses for Item pipelines include:
+
+* cleansing HTML data
+* validating scraped data (checking that the items contain certain fields)
+* checking for duplicates (and dropping them)
+* storing the scraped item in a database
+
+Also, Don't forget to add your pipeline to the ITEM_PIPELINES setting!!!
+
+See: [Scrapy Official Documentation](https://doc.scrapy.org/en/latest/topics/item-pipeline.html)
+
+
+```python
+# Define your item pipelines here
+#
+# Don't forget to add your pipeline to the ITEM_PIPELINES setting
+# See: https://doc.scrapy.org/en/latest/topics/item-pipeline.html
+
+import boto3
+from scrapy.exceptions import DropItem
+
+
+class CoincrawlerPipeline(object):
+    def open_spider(self, spider):
+        ## AWS DynamoDB Connection
+        # Get the service resource.
+        dynamodb = boto3.resource('dynamodb')
+        # Get the table
+        self.table = dynamodb.Table('CoinDeskArticles')
+                
+    def close_spider(self, spider):
+        pass
+
+    def process_item(self, item, spider):
+        if item:
+            with self.table.batch_writer() as batch:
+                batch.put_item(
+                    Item={
+                        'Title': item['title'],
+                        'Date': item['date_published'],
+                        'Time': item['time_published'],
+                        'Author': item['author'],
+                        'Link': item['link'],
+                        }
+                )
+            return item
+        else:
+            raise DropItem()
+```
+
+The `open_spider` method opens the DyanmoDB resource in our AWS account and saves the DynamoDB table of our choosing (in this case I have a DynamoDB table called "CoinDeskArticles") as an instance variable. Note that this method will be called first when the spider begins crawling 
+
+The `process_item` method where all the processing magic happends. The `item` parameter is the dictionary yielded by the Coindesk Spider. The `process_item` method takes each dictionary and inserts the item into the DyanamoDB table with the fields "Title", "Date", "Time", "Author", amd "Link".
+
+## Running the Spider
+To run our spider on the Coindesk website, all you have to do is run the command `scrapy crawl coincrawler`
+
+What just happend?
+
+Scrapy schedules the scrapy.Request objects returned by the start_requests method of the Spider. The start_requests method uses the start_urls class attribute to create the intitial requests for your spider. Upon receiving a response for each one, it instantiates Response objects and calls the callback method associated with the request (in this case, the parse method) passing the response as argument.
