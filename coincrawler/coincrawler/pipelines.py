@@ -7,6 +7,7 @@
 
 import boto3
 from scrapy.exceptions import DropItem
+from datetime import datetime
 
 
 class CoincrawlerPipeline(object):
@@ -30,7 +31,7 @@ class CoincrawlerPipeline(object):
     def process_item(self, item, spider):
 		if item:
 			#convert date_published and time_published to UTC timestamp
-			both_pub = item['date_published'] + ' ' + item['time_published']
+			both_pub = item['date_published'] + ' ' + item['time_published'].replace('+00:00','')
 			dt = datetime.strptime(both_pub, '%Y-%m-%d %H:%M:%S')
 			timestamp_item = (dt - datetime(1970, 1, 1)).total_seconds()
 			#Insert item into DynamoDB Table but does not overwrite any items
@@ -39,7 +40,7 @@ class CoincrawlerPipeline(object):
 				Key={'Author':{'S': item['author']}},
 				UpdateExpression="SET UTC_Published=:tU, Title=:tI, Link=:Li",
 				ExpressionAttributeValues={
-					':tU': {"N": timestamp_item},
+					':tU': {"N": str(timestamp_item)},
 					':tI':{"S": item['title']},
 					':Li':{"S": item['link']}
 					}
