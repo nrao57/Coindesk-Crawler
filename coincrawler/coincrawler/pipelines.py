@@ -18,7 +18,15 @@ class CoincrawlerPipeline(object):
 		self.table = dynamodb.Table('CoinDeskArticles')
 				
     def close_spider(self, spider):
-		pass
+		# publish a message to sns which alerts when the spider
+		# is finished running
+		client = boto3.client('sns')
+		client.publish(
+			TopicArn='arn:aws:sns:us-east-1:547950090894:WebCrawlerAlerts',
+			Message='Finally! The Coin Desk Web Crawler has finished',
+			Subject='Coin Desk Web Crawler has finished'
+		)
+		
 
     def process_item(self, item, spider):
 		if item:
