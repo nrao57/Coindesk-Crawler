@@ -13,12 +13,11 @@ class CoincrawlerPipeline(object):
     def open_spider(self, spider):
 		## AWS DynamoDB Connection
 	    # Get the service resource.
-		dynamodb = boto3.resource('dynamodb')
-		# Get the table
-		self.table = dynamodb.Table('CoinDeskArticles')
+		self.dynamodb = boto3.client('dynamodb')
+
 				
     def close_spider(self, spider):
-		# publish a message to sns which alerts when the spider
+		# publish a message to sns alert when the spider
 		# is finished running
 		client = boto3.client('sns')
 		client.publish(
@@ -30,16 +29,18 @@ class CoincrawlerPipeline(object):
 
     def process_item(self, item, spider):
 		if item:
-			with self.table.batch_writer() as batch:
-				batch.put_item(
-					Item={
-						'Title': item['title'],
-						'Date': item['date_published'],
-						'Time': item['time_published'],
-						'Author': item['author'],
-						'Link': item['link'],
-						}
-				)
+			#Insert item into DynamoDB Table but does not overwrite any items
+			self.dynamodb.update_item(
+				TableName = 'CoindeskArticles',
+				Key={'Title':{'S': item['title']}},
+				UpdateExpression="SET Date_Published=:dP, Time_Published=:tP, Author=:au, Link=:Li",
+				ExpressionAttributeValues={
+					':dP': {"S": item['date_published']},
+					':tP':{"S": item['time_published']},
+					':au':{"S": item['author']},
+					':Li':{"S": item['link']}
+					}
+			)
 			return item
 		else:
 			raise DropItem()
