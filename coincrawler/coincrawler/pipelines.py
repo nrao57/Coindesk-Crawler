@@ -29,15 +29,18 @@ class CoincrawlerPipeline(object):
 
     def process_item(self, item, spider):
 		if item:
+			#convert date_published and time_published to UTC timestamp
+			both_pub = item['date_published'] + ' ' + item['time_published']
+			dt = datetime.strptime(both_pub, '%Y-%m-%d %H:%M:%S')
+			timestamp_item = (dt - datetime(1970, 1, 1)).total_seconds()
 			#Insert item into DynamoDB Table but does not overwrite any items
 			self.dynamodb.update_item(
 				TableName = 'CoindeskArticles',
-				Key={'Title':{'S': item['title']}},
-				UpdateExpression="SET Date_Published=:dP, Time_Published=:tP, Author=:au, Link=:Li",
+				Key={'Author':{'S': item['author']}},
+				UpdateExpression="SET UTC_Published=:tU, Title=:tI, Link=:Li",
 				ExpressionAttributeValues={
-					':dP': {"S": item['date_published']},
-					':tP':{"S": item['time_published']},
-					':au':{"S": item['author']},
+					':tU': {"N": timestamp_item},
+					':tI':{"S": item['title']},
 					':Li':{"S": item['link']}
 					}
 			)
