@@ -7683,3 +7683,7 @@ coincrawler/coincrawler/pipelines.pyc
 coincrawler/coincrawler/settings.pyc
 coincrawler/coincrawler/spiders/coin_spider.pyc
 coincrawler/coincrawler/spiders/coin_spider_coindesk.pyc
+coincrawler/coincrawler/pipelines.pyc
+coincrawler/coincrawler/settings.pyc
+coincrawler/coincrawler/spiders/coin_spider.pyc
+coincrawler/coincrawler/spiders/coin_spider_coindesk.pyc

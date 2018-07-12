@@ -37,10 +37,9 @@ class CoincrawlerPipeline(object):
 			#Insert item into DynamoDB Table but does not overwrite any items
 			self.dynamodb.update_item(
 				TableName = 'CoindeskArticles',
-				Key={'Author':{'S': item['author']}},
-				UpdateExpression="SET UTC_Published=:tU, Title=:tI, Link=:Li",
+				Key={'Author':{'S': item['author']}, 'UTC_Published': {'N': str(timestamp_item)}},
+				UpdateExpression="SET Title=:tI, Link=:Li",
 				ExpressionAttributeValues={
-					':tU': {"N": str(timestamp_item)},
 					':tI':{"S": item['title']},
 					':Li':{"S": item['link']}
 					}
