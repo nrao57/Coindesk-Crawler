@@ -34,13 +34,15 @@ def lambda_handler(event, context):
     '''
     #print("Received event: " + json.dumps(event, indent=2))
 
+    ScanLimit = 100
+	
     operations = {
-        'GET': lambda dynamo, x: querydb.get_query(dynamo, payload),
+        'GET': lambda dynamo, x, ScanLimit: querydb.get_query(dynamo, payload, ScanLimit),
     }
 
     operation = event['httpMethod']
     if operation in operations:
         payload = event['queryStringParameters'] if operation == 'GET' else json.loads(event['body'])
-        return respond(None, operations[operation](dynamo, payload))
+        return respond(None, operations[operation](dynamo, payload, ScanLimit))
     else:
         return respond(ValueError('Unsupported method "{}"'.format(operation)))
